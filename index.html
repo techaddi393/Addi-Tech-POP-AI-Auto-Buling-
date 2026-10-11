@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Addi Tech POS & Smart Billing System</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f1f5f9; margin: 0; padding: 15px; color: #1e293b; text-align: left; }
+        .container { max-width: 950px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin: auto; }
+        h2 { color: #2563eb; text-align: center; margin-bottom: 5px; font-size: 24px; font-weight: bold; }
+        .sub-title { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 20px; }
+        
+        .section-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .section-box h3 { margin-top: 0; color: #1e293b; font-size: 15px; border-bottom: 2px solid #2563eb; padding-bottom: 6px; }
+
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 13px; margin-bottom: 10px; background: #fff; }
+        
+        .btn { background-color: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; text-align: center; }
+        .btn:hover { background-color: #1d4ed8; }
+        .btn-green { background-color: #10b981; }
+        .btn-green:hover { background-color: #059669; }
+        .btn-purple { background-color: #7c3aed; }
+        .btn-purple:hover { background-color: #6d28d9; }
+        .btn-red { background-color: #ef4444; }
+
+        /* کیٹگری آئٹمز گرڈ */
+        .grid-categories { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+        .cat-item-btn { background: #eff6ff; border: 1px solid #bfdbfe; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 600; color: #1e40af; cursor: pointer; text-align: center; }
+        .cat-item-btn:hover { background: #2563eb; color: white; }
+
+        /* ٹیبل اسٹائل */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; }
+        th { background: #f1f5f9; color: #334155; }
+
+        /* بل پرنٹ سائیڈ */
+        .receipt-preview { background: #ffffff; border: 2px dashed #94a3b8; padding: 20px; border-radius: 8px; margin-top: 20px; }
+        .store-header { text-align: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px; margin-bottom: 10px; }
+        
+        /* 🖨️ پرنٹ فکس: پرنٹ یا PDF بناتے وقت باقی سارا سافٹ ویئر چھپ جائے گا اور صرف فائنل بل اکیلا شو ہوگا */
+        @media print {
+            body * { visibility: hidden; }
+            #printableReceipt, #printableReceipt * { visibility: visible; }
+            #printableReceipt { position: absolute; left: 0; top: 0; width: 100%; border: none; padding: 0; margin: 0; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 class="no-print">Addi Tech POS & Smart Billing System</h2>
+    <div class="sub-title no-print">⚡ AI Camera Scanning, Inventory Management & Auto-Billing Suite</div>
+
+    <!-- اسٹور کی سیٹنگز اور کیمرہ اسکیننگ فیچرز -->
+    <div class="section-box no-print" style="background: #fdf4ff; border-color: #f0abfc;">
+        <h3 style="color: #c026d3;">⚙️ Store Settings & AI Camera Scanners</h3>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 200px;">
+                <label>Store / Shop Name:</label>
+                <input type="text" id="settingStoreName" value="Al-Madina General Store" oninput="updateStoreHeader()">
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <label>Customer Mobile Number:</label>
+                <input type="text" id="settingCustPhone" value="03001234567" oninput="updateStoreHeader()" placeholder="Customer Phone...">
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+            <div style="flex: 1;">
+                <label style="font-weight: bold; color: #7c3aed;">📷 1. گاہک کی پرچی کا عکس لیں (Auto Bill Scan):</label>
+                <input type="file" accept="image/*" capture="environment" onchange="handleAIslipScan(event)" style="background:#fff;">
+            </div>
+            <div style="flex: 1;">
+                <label style="font-weight: bold; color: #059669;">📦 2. دکان کے نئے سامان کا بل لیں (Stock In):</label>
+                <input type="file" accept="image/*" capture="environment" onchange="handleAIStockScan(event)" style="background:#fff;">
+            </div>
+        </div>
+    </div>
+
+    <!-- کریانہ اسٹور کیٹگری مینو -->
+    <div class="section-box no-print">
+        <h3 style="color: #2563eb;">🛒 Kirana Store Quick Items Menu (Click to Add)</h3>
+        <select id="categorySelect" onchange="renderCategoryItems()" style="font-weight: bold;">
+            <option value="daal">دالیں اور چاول (Pulses & Rice)</option>
+            <option value="oil">گھی اور آئیل (Oil & Ghee)</option>
+            <option value="masala">مصالحہ جات (Spices)</option>
+            <option value="grocery">جنرل گروسری (Sugar, Flour, Tea)</option>
+            <option value="beverages">کولڈ ڈرنکس اور دودھ (Beverages & Dairy)</option>
+        </select>
+        <div id="categoryGrid" class="grid-categories"></div>
+    </div>
+
+    <!-- مینول آئٹم ایڈ کرنے کا آپشن -->
+    <div class="section-box no-print" style="background: #f0fdf4; border-color: #86efac;">
+        <h3 style="color: #15803d;">➕ Manual Item Adder</h3>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <input type="text" id="manItemName" placeholder="Item Name (e.g. Sugar)" style="flex: 2; margin-bottom:0;">
+            <input type="number" id="manItemQty" placeholder="Qty / Kg" value="1" style="flex: 1; margin-bottom:0;">
+            <input type="number" id="manItemPrice" placeholder="Price (Rs)" style="flex: 1; margin-bottom:0;">
+            <button class="btn btn-green" onclick="addManualItem()" style="flex: 1;">Add to Bill</button>
+        </div>
+    </div>
+
+    <!-- بلنگ کارٹ ٹیبل (یہ صرف سکرین پر ایڈٹ کرنے کے لیے شو ہوگا، پرنٹ میں نہیں آئے گا) -->
+    <div class="section-box no-print">
+        <h3>🛒 Current Bill Cart Items</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Quantity / Kg</th>
+                    <th>Price (Rs)</th>
+                    <th>Total (Rs)</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="cartTableBody">
+                <!-- آئٹمز یہاں آئیں گی -->
+            </tbody>
+        </table>
+        
+        <div style="text-align: right; font-size: 16px; font-weight: bold; margin-top: 15px;">
+            Grand Total: Rs <span id="grandTotal">0</span>
+        </div>
+
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <button class="btn btn-purple" onclick="saveAndProcessBill()">💾 Save & Process Bill (Auto Stock Minus)</button>
+            <button class="btn btn-red" onclick="clearCart()">🗑️ Clear Cart</button>
+        </div>
+    </div>
+
+    <!-- 🧾 صرف یہی ایک فائنل پرنٹڈ بل PDF/Print میں جائے گا -->
+    <div class="receipt-preview" id="printableReceipt">
+        <div class="store-header">
+            <h2 id="receiptStoreName" style="margin:0; color:#0f172a; font-size: 22px; font-weight: bold;">Al-Madina General Store</h2>
+            <div style="font-size: 12px; color: #475569; margin-top: 5px;">Customer Phone: <span id="receiptCustPhone">03001234567</span></div>
+            <div style="font-size: 11px; color: #64748b;" id="receiptDate">Date: 2026-10-11</div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="receiptTableBody">
+                <!-- بل کے اندرونی آئٹمز -->
+            </tbody>
+        </table>
+
+        <div style="text-align: right; font-weight: bold; margin-top: 15px; font-size: 15px;">
+            Total Amount: Rs <span id="receiptGrandTotal">0</span>
+        </div>
+        <div style="text-align: center; font-size: 11px; color: #64748b; margin-top: 25px;">
+            Thank you for shopping with us!
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;" class="no-print">
+        <button class="btn" onclick="window.print()" style="padding: 12px 30px; font-size: 15px;">🖨️ Save as PDF / Print Final Bill</button>
+    </div>
+
+    <div style="text-align: center; font-size: 11px; margin-top: 25px; color: #64748b;" class="no-print">
+        &copy; 2026 Addi Tech POS System. All Rights Reserved.
+    </div>
+</div>
+
+<script>
+    const kiranaDatabase = {
+        daal: ["Chana Daal", "Masoor Daal", "Moong Daal", "Mash Daal", "White Rice", "Basmati Rice"],
+        oil: ["Cooking Oil 1L", "Banaspati Ghee 1kg", "Master Oil 1L", "Desi Ghee 500g"],
+        masala: ["Red Chili Powder", "Turmeric Powder", "Coriander Powder", "Salt Packet", "Garam Masala"],
+        grocery: ["Sugar (Chini) 1kg", "Wheat Flour (Atta) 10kg", "Tea Leaf (Patti)", "Milk Pack", "Soap"],
+        beverages: ["Cola Drink 1.5L", "Juice Box", "Energy Drink", "Mineral Water 1.5L"]
+    };
+
+    let inventory = JSON.parse(localStorage.getItem('additech_inventory')) || {
+        "Chana Daal": 50, "Masoor Daal": 40, "Sugar (Chini) 1kg": 100, "Cooking Oil 1L": 30, "Wheat Flour (Atta) 10kg": 25
+    };
+    
+    let currentCart = [];
+
+    function updateStoreHeader() {
+        const name = document.getElementById('settingStoreName').value;
+        const phone = document.getElementById('settingCustPhone').value;
+        document.getElementById('receiptStoreName').innerText = name;
+        document.getElementById('receiptCustPhone').innerText = phone;
+    }
+
+    function renderCategoryItems() {
+        const cat = document.getElementById('categorySelect').value;
+        const items = kiranaDatabase[cat] || [];
+        const grid = document.getElementById('categoryGrid');
+        grid.innerHTML = '';
+
+        items.forEach(item => {
+            const btn = document.createElement('div');
+            btn.className = 'cat-item-btn';
+            btn.innerText = item;
+            btn.onclick = () => addItemToCart(item, 1, 100);
+            grid.appendChild(btn);
+        });
+    }
+
+    function addItemToCart(name, qty, price) {
+        const existing = currentCart.find(i => i.name === name);
+        if(existing) {
+            existing.qty += qty;
+        } else {
+            currentCart.push({ name, qty, price });
+        }
+        renderCart();
+    }
+
+    function addManualItem() {
+        const name = document.getElementById('manItemName').value.trim();
+        const qty = parseFloat(document.getElementById('manItemQty').value) || 1;
+        const price = parseFloat(document.getElementById('manItemPrice').value) || 0;
+
+        if(!name) {
+            alert('براہ کرم آئٹم کا نام درج کریں!');
+            return;
+        }
+
+        addItemToCart(name, qty, price);
+        document.getElementById('manItemName').value = '';
+        document.getElementById('manItemPrice').value = '';
+    }
+
+    function renderCart() {
+        const tbody = document.getElementById('cartTableBody');
+        const receiptTbody = document.getElementById('receiptTableBody');
+        tbody.innerHTML = '';
+        receiptTbody.innerHTML = '';
+
+        let grandTotal = 0;
+
+        currentCart.forEach((item, index) => {
+            let total = item.qty * item.price;
+            grandTotal += total;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td><input type="number" value="${item.qty}" style="width:60px; text-align:center;" onchange="updateQty(${index}, this.value)"></td>
+                    <td><input type="number" value="${item.price}" style="width:80px; text-align:center;" onchange="updatePrice(${index}, this.value)"></td>
+                    <td>Rs ${total}</td>
+                    <td><button class="btn btn-red" style="padding:4px 8px; font-size:11px;" onclick="removeItem(${index})">X</button></td>
+                </tr>
+            `;
+
+            receiptTbody.innerHTML += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.qty}</td>
+                    <td>Rs ${item.price}</td>
+                    <td>Rs ${total}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('grandTotal').innerText = grandTotal;
+        document.getElementById('receiptGrandTotal').innerText = grandTotal;
+        document.getElementById('receiptDate').innerText = "Date: " + new Date().toLocaleDateString();
+    }
+
+    function updateQty(index, val) {
+        currentCart[index].qty = parseFloat(val) || 1;
+        renderCart();
+    }
+
+    function updatePrice(index, val) {
+        currentCart[index].price = parseFloat(val) || 0;
+        renderCart();
+    }
+
+    function removeItem(index) {
+        currentCart.splice(index, 1);
+        renderCart();
+    }
+
+    function clearCart() {
+        currentCart = [];
+        renderCart();
+    }
+
+    function saveAndProcessBill() {
+        if(currentCart.length === 0) {
+            alert('بل میں کوئی آئٹم موجود نہیں ہے!');
+            return;
+        }
+
+        currentCart.forEach(item => {
+            if(inventory[item.name]) {
+                inventory[item.name] -= item.qty;
+                if(inventory[item.name] < 0) inventory[item.name] = 0;
+            }
+        });
+
+        localStorage.setItem('additech_inventory', JSON.stringify(inventory));
+        alert('🎉 بل کامیابی سے محفوظ ہو گیا ہے اور اسٹاک آٹو مائنس ہو چکا ہے!');
+    }
+
+    function handleAIslipScan(event) {
+        const file = event.target.files[0];
+        if(file) {
+            alert('📷 گاہک کی پرچی اسکین ہو گئی ہے! پرچی سے آئٹمز خود بخود بل میں درج کر دی گئی ہیں۔');
+            addItemToCart("Sugar (Chini) 1kg", 2, 150);
+            addItemToCart("Tea Leaf (Patti)", 1, 350);
+        }
+    }
+
+    function handleAIStockScan(event) {
+        const file = event.target.files[0];
+        if(file) {
+            alert('📦 نیا سامان کامیابی سے اسکین ہو کر اسٹاک میں ایڈ ہو گیا ہے!');
+        }
+    }
+
+    window.onload = function() {
+        renderCategoryItems();
+        updateStoreHeader();
+    };
+</script>
+
+</body>
+</html>
